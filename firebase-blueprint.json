@@ -1,0 +1,129 @@
+{
+  "entities": {
+    "User": {
+      "title": "User",
+      "description": "User profile representation in CareerEdge AI",
+      "type": "object",
+      "properties": {
+        "userId": {
+          "type": "string",
+          "description": "The unique Firebase Auth UID of the user",
+          "maxLength": 128
+        },
+        "email": {
+          "type": "string",
+          "description": "The email address of the user",
+          "maxLength": 256
+        },
+        "displayName": {
+          "type": "string",
+          "description": "The display name of the candidate",
+          "maxLength": 128
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Timestamp when user document was created"
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Timestamp when user document was last updated"
+        }
+      },
+      "required": ["userId", "email", "createdAt", "updatedAt"]
+    },
+    "Resume": {
+      "title": "Resume",
+      "description": "Saved ATS resume document",
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier of the resume",
+          "maxLength": 128
+        },
+        "userId": {
+          "type": "string",
+          "description": "Owner UID who created the resume",
+          "maxLength": 128
+        },
+        "title": {
+          "type": "string",
+          "description": "Resume document name/label",
+          "maxLength": 128
+        },
+        "resumeData": {
+          "type": "object",
+          "description": "Full structured resume data"
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Creation timestamp"
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Last updated timestamp"
+        }
+      },
+      "required": ["id", "userId", "title", "resumeData", "createdAt", "updatedAt"]
+    },
+    "Analysis": {
+      "title": "Analysis",
+      "description": "Saved ATS score and diagnostic analysis",
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique ID of the analysis record",
+          "maxLength": 128
+        },
+        "userId": {
+          "type": "string",
+          "description": "Owner UID of the scan",
+          "maxLength": 128
+        },
+        "targetRole": {
+          "type": "string",
+          "description": "Target job title for the scan",
+          "maxLength": 128
+        },
+        "overallScore": {
+          "type": "number",
+          "description": "Overall calculated ATS score 0-100"
+        },
+        "matchLevel": {
+          "type": "string",
+          "description": "Match quality tier",
+          "maxLength": 64
+        },
+        "analysisData": {
+          "type": "object",
+          "description": "Full audit payload including issues and keywords"
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Scan timestamp"
+        }
+      },
+      "required": ["id", "userId", "targetRole", "overallScore", "matchLevel", "analysisData", "createdAt"]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": "User",
+      "description": "Candidate user accounts"
+    },
+    "/resumes/{resumeId}": {
+      "schema": "Resume",
+      "description": "Candidate saved resume documents"
+    },
+    "/analyses/{analysisId}": {
+      "schema": "Analysis",
+      "description": "Candidate historical ATS audits"
+    }
+  }
+}

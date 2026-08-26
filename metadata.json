@@ -1,0 +1,6 @@
+{
+  "name": "ResumeIQ",
+  "description": "Next-generation ATS resume intelligence, AI score checker, STAR bullet rewriter, and precision template studio.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

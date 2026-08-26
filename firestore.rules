@@ -1,0 +1,132 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Default deny catch-all
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // Helper Primitives
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+
+    function isValidId(id) {
+      return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function existing() {
+      return resource.data;
+    }
+
+    // Entity Validators
+    function isValidUser(data) {
+      return data.userId is string &&
+        data.userId.size() <= 128 &&
+        data.userId == request.auth.uid &&
+        data.email is string &&
+        data.email.size() <= 256 &&
+        (!('displayName' in data) || (data.displayName is string && data.displayName.size() <= 128)) &&
+        data.createdAt is timestamp &&
+        data.updatedAt is timestamp;
+    }
+
+    function isValidResume(data) {
+      return data.id is string &&
+        data.id.size() <= 128 &&
+        data.userId is string &&
+        data.userId == request.auth.uid &&
+        data.title is string &&
+        data.title.size() >= 1 &&
+        data.title.size() <= 128 &&
+        data.resumeData is map &&
+        data.createdAt is timestamp &&
+        data.updatedAt is timestamp;
+    }
+
+    function isValidAnalysis(data) {
+      return data.id is string &&
+        data.id.size() <= 128 &&
+        data.userId is string &&
+        data.userId == request.auth.uid &&
+        data.targetRole is string &&
+        data.targetRole.size() <= 128 &&
+        data.overallScore is number &&
+        data.overallScore >= 0 &&
+        data.overallScore <= 100 &&
+        data.matchLevel is string &&
+        data.matchLevel.size() <= 64 &&
+        data.analysisData is map &&
+        data.createdAt is timestamp;
+    }
+
+    // Users collection
+    match /users/{userId} {
+      allow get: if isOwner(userId);
+      allow list: if false; // PII protection: no listing of candidate profiles
+      allow create: if isOwner(userId) &&
+        isValidId(userId) &&
+        isValidUser(incoming()) &&
+        incoming().createdAt == request.time &&
+        incoming().updatedAt == request.time;
+      allow update: if isOwner(userId) &&
+        isValidId(userId) &&
+        isValidUser(incoming()) &&
+        incoming().userId == existing().userId &&
+        incoming().createdAt == existing().createdAt &&
+        incoming().updatedAt == request.time &&
+        incoming().diff(existing()).affectedKeys().hasOnly(['displayName', 'email', 'updatedAt']);
+      allow delete: if isOwner(userId) && isValidId(userId);
+    }
+
+    // Resumes collection
+    match /resumes/{resumeId} {
+      allow get: if isSignedIn() && existing().userId == request.auth.uid;
+      allow list: if isSignedIn() && resource.data.userId == request.auth.uid;
+      allow create: if isSignedIn() &&
+        isValidId(resumeId) &&
+        incoming().id == resumeId &&
+        incoming().userId == request.auth.uid &&
+        isValidResume(incoming()) &&
+        incoming().createdAt == request.time &&
+        incoming().updatedAt == request.time;
+      allow update: if isSignedIn() &&
+        isValidId(resumeId) &&
+        existing().userId == request.auth.uid &&
+        isValidResume(incoming()) &&
+        incoming().id == existing().id &&
+        incoming().userId == existing().userId &&
+        incoming().createdAt == existing().createdAt &&
+        incoming().updatedAt == request.time &&
+        incoming().diff(existing()).affectedKeys().hasOnly(['title', 'resumeData', 'updatedAt']);
+      allow delete: if isSignedIn() &&
+        isValidId(resumeId) &&
+        existing().userId == request.auth.uid;
+    }
+
+    // Analyses collection
+    match /analyses/{analysisId} {
+      allow get: if isSignedIn() && existing().userId == request.auth.uid;
+      allow list: if isSignedIn() && resource.data.userId == request.auth.uid;
+      allow create: if isSignedIn() &&
+        isValidId(analysisId) &&
+        incoming().id == analysisId &&
+        incoming().userId == request.auth.uid &&
+        isValidAnalysis(incoming()) &&
+        incoming().createdAt == request.time;
+      allow update: if false; // Audit logs are immutable
+      allow delete: if isSignedIn() &&
+        isValidId(analysisId) &&
+        existing().userId == request.auth.uid;
+    }
+  }
+}
